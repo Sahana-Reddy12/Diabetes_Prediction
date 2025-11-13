@@ -3,16 +3,27 @@ import axios from "axios";
 import { Link, useNavigate } from "react-router-dom";
 
 function Login() {
+  const API_BASE = "https://diabetes-prediction-server.onrender.com";
+
   const [form, setForm] = useState({ email: "", password: "" });
   const navigate = useNavigate();
 
-  const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
+  const handleChange = (e) =>
+    setForm({ ...form, [e.target.name]: e.target.value });
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
     try {
-      const res = await axios.post("http://localhost:5000/api/auth/login", form);
+      const res = await axios.post(
+        `${API_BASE}/api/auth/login`,
+        form,
+        { headers: { "Content-Type": "application/json" } }
+      );
+
+      // Save JWT Token
       localStorage.setItem("token", res.data.token);
+
       navigate("/profile");
     } catch (err) {
       alert("Invalid credentials. Please try again.");

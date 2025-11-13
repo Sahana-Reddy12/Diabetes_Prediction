@@ -1,11 +1,14 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 
 export default function Profile() {
+  // Load saved profile if exists
+  const savedProfile = JSON.parse(localStorage.getItem("profile")) || {};
+
   const [profileData, setProfileData] = useState({
-    name: "Sahana Reddy",
-    email: "sahanareddybairugani@gmail.com",
-    age: "22",
-    gender: "Female",
+    name: savedProfile.name || "Sahana Reddy",
+    email: savedProfile.email || "sahanareddybairugani@gmail.com",
+    age: savedProfile.age || "22",
+    gender: savedProfile.gender || "Female",
     image: localStorage.getItem("profileImage") || "/default-avatar.png",
   });
 
@@ -15,26 +18,32 @@ export default function Profile() {
     setProfileData({ ...profileData, [e.target.name]: e.target.value });
   };
 
+  // Handle profile image upload
   const handleImageChange = (e) => {
     const file = e.target.files[0];
     if (file) {
       const reader = new FileReader();
+
       reader.onloadend = () => {
         setPreview(reader.result);
         localStorage.setItem("profileImage", reader.result);
+        setProfileData({ ...profileData, image: reader.result });
       };
+
       reader.readAsDataURL(file);
     }
   };
 
+  // Save profile to localStorage
   const handleSave = () => {
-    alert("Profile saved successfully!");
     localStorage.setItem("profile", JSON.stringify(profileData));
+    alert("Profile saved successfully!");
   };
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-b from-gray-900 via-gray-800 to-gray-900 text-white px-4 pt-20">
       <div className="bg-gray-800 shadow-2xl rounded-3xl p-10 w-full max-w-lg text-center border border-gray-700">
+
         {/* Profile Image Section */}
         <div className="flex flex-col items-center mb-6">
           <div className="relative">
@@ -43,13 +52,14 @@ export default function Profile() {
               alt="Profile"
               className="w-32 h-32 rounded-full object-cover border-4 border-teal-400 shadow-md"
             />
+
             <label
               htmlFor="imageUpload"
               className="absolute bottom-2 right-2 bg-teal-500 hover:bg-teal-600 text-white p-2 rounded-full cursor-pointer transition duration-200"
-              title="Upload new picture"
             >
               📷
             </label>
+
             <input
               id="imageUpload"
               type="file"
@@ -65,7 +75,7 @@ export default function Profile() {
           <p className="text-gray-400">Your Personal Profile</p>
         </div>
 
-        {/* Form Section */}
+        {/* Input Form */}
         <form className="flex flex-col space-y-4 text-left">
           <div>
             <label className="text-gray-300">Name</label>
@@ -74,7 +84,7 @@ export default function Profile() {
               name="name"
               value={profileData.name}
               onChange={handleChange}
-              className="w-full p-3 mt-1 rounded-lg bg-gray-700 text-white border border-gray-600 focus:ring-2 focus:ring-teal-400 focus:outline-none"
+              className="w-full p-3 mt-1 rounded-lg bg-gray-700 text-white border border-gray-600 focus:ring-2 focus:ring-teal-400"
             />
           </div>
 
@@ -96,7 +106,7 @@ export default function Profile() {
               name="age"
               value={profileData.age}
               onChange={handleChange}
-              className="w-full p-3 mt-1 rounded-lg bg-gray-700 text-white border border-gray-600 focus:ring-2 focus:ring-teal-400 focus:outline-none"
+              className="w-full p-3 mt-1 rounded-lg bg-gray-700 text-white border border-gray-600 focus:ring-2 focus:ring-teal-400"
             />
           </div>
 
@@ -106,7 +116,7 @@ export default function Profile() {
               name="gender"
               value={profileData.gender}
               onChange={handleChange}
-              className="w-full p-3 mt-1 rounded-lg bg-gray-700 text-white border border-gray-600 focus:ring-2 focus:ring-teal-400 focus:outline-none"
+              className="w-full p-3 mt-1 rounded-lg bg-gray-700 text-white border border-gray-600 focus:ring-2 focus:ring-teal-400"
             >
               <option>Female</option>
               <option>Male</option>
@@ -119,7 +129,7 @@ export default function Profile() {
             onClick={handleSave}
             className="mt-4 bg-teal-500 hover:bg-teal-600 text-white font-semibold py-3 rounded-lg transition duration-300"
           >
-             Save Changes
+            Save Changes
           </button>
         </form>
       </div>
