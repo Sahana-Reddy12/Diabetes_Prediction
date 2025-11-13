@@ -198,7 +198,7 @@ function Predict() {
                       <tr key={key} className="border-t border-gray-700">
                         <td className="p-2">{key}</td>
                         <td className="p-2">{val.value}</td>
-                        <td className="p-2">{normalRanges[key]}</td>
+                        <td className="p-2">{normalRanges[key] || "-"}</td>
                         <td className="p-2">{val.status}</td>
                       </tr>
                     ))}
