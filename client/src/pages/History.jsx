@@ -7,6 +7,8 @@ function History() {
   const [expanded, setExpanded] = useState({});
   const [loading, setLoading] = useState(true);
 
+  const API_BASE = "https://diabetes-prediction-server.onrender.com";
+
   const normalRanges = {
     Age: "20–45 years",
     BMI: "18.5–24.9",
@@ -22,15 +24,16 @@ function History() {
   const fetchHistory = async () => {
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch("http://localhost:5000/api/predictions/history", {
+      const res = await fetch(`${API_BASE}/api/predictions/history`, {
         headers: { Authorization: `Bearer ${token}` },
       });
+
       const data = await res.json();
 
       if (data.success && Array.isArray(data.history)) {
         setHistory(data.history);
       } else {
-        console.error("Unexpected API response:", data);
+        console.error("Unexpected response:", data);
       }
     } catch (err) {
       console.error("Error fetching history:", err);
@@ -43,26 +46,28 @@ function History() {
     fetchHistory();
   }, []);
 
-  //  Toggle Overview Visibility
+  // Toggle overview
   const toggleOverview = (id) => {
     setExpanded((prev) => ({ ...prev, [id]: !prev[id] }));
   };
 
-  //  Delete a specific record
+  // Delete a specific history record
   const handleDelete = async (id) => {
     try {
       const token = localStorage.getItem("token");
-      await fetch(`http://localhost:5000/api/predictions/delete/${id}`, {
+
+      await fetch(`${API_BASE}/api/predictions/delete/${id}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` },
       });
+
       setHistory(history.filter((item) => item._id !== id));
     } catch (error) {
       console.error("Error deleting prediction:", error);
     }
   };
 
-  //  Generate PDF Report
+  // Generate PDF
   const downloadPDF = (record) => {
     const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
 
@@ -81,6 +86,7 @@ function History() {
     doc.setTextColor(0, 0, 0);
 
     const overview = record.overview || {};
+
     const tableData = Object.entries(overview).map(([k, v]) => [
       k,
       v.value,
@@ -90,24 +96,16 @@ function History() {
 
     autoTable(doc, {
       startY: 60,
-      head: [["Parameter", "Entered Value", "Normal Range", "Status"]],
+      head: [["Parameter", "Value", "Normal Range", "Status"]],
       body: tableData,
       theme: "grid",
       headStyles: {
         fillColor: [22, 160, 133],
         textColor: 255,
         halign: "center",
-        fontStyle: "bold",
       },
-      bodyStyles: { textColor: 30 },
-      alternateRowStyles: { fillColor: [245, 245, 245] },
       styles: { font: "helvetica", fontSize: 11 },
     });
-
-    const finalY = doc.lastAutoTable.finalY + 10;
-    doc.setFontSize(11);
-    doc.setTextColor(100);
-    doc.text("© 2025 Diabetes Predictor | Developed by Sahana Reddy", 14, finalY);
 
     doc.save("Diabetes_Report.pdf");
   };
@@ -152,12 +150,14 @@ function History() {
                   >
                     {expanded[item._id] ? "Hide Overview" : "Show Overview"}
                   </button>
+
                   <button
                     onClick={() => downloadPDF(item)}
                     className="bg-yellow-500 hover:bg-yellow-600 px-4 py-2 rounded-lg text-sm"
                   >
                     Download
                   </button>
+
                   <button
                     onClick={() => handleDelete(item._id)}
                     className="bg-red-600 hover:bg-red-700 px-4 py-2 rounded-lg text-sm"
@@ -179,14 +179,18 @@ function History() {
                       </tr>
                     </thead>
                     <tbody>
-                      {Object.entries(item.overview || {}).map(([key, val]) => (
-                        <tr key={key} className="border-t border-gray-700">
-                          <td className="p-2">{key}</td>
-                          <td className="p-2">{val.value}</td>
-                          <td className="p-2">{normalRanges[key] || "-"}</td>
-                          <td className="p-2">{val.status}</td>
-                        </tr>
-                      ))}
+                      {Object.entries(item.overview || {}).map(
+                        ([key, val]) => (
+                          <tr key={key} className="border-t border-gray-700">
+                            <td className="p-2">{key}</td>
+                            <td className="p-2">{val.value}</td>
+                            <td className="p-2">
+                              {normalRanges[key] || "-"}
+                            </td>
+                            <td className="p-2">{val.status}</td>
+                          </tr>
+                        )
+                      )}
                     </tbody>
                   </table>
                 </div>

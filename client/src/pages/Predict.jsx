@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -29,47 +28,52 @@ function Predict() {
   const [report, setReport] = useState(null);
   const [showOverview, setShowOverview] = useState(false);
 
-  //  Handle input changes
+  // Handle input change
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  //  Submit for prediction
+  // Submit prediction
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const res = await fetch("http://127.0.0.1:5000/predict", {
+      const res = await fetch("https://ml-service-t0j1.onrender.com/predict", {
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
         body: new URLSearchParams(formData),
       });
+
       const data = await res.json();
       setReport(data);
       setShowOverview(false);
 
-      //  Save to MongoDB (backend)
+      // Save to MongoDB using Node server on Render
       const token = localStorage.getItem("token");
+
       if (token && data.prediction) {
-        await fetch("http://localhost:5000/api/predictions/save", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            inputs: formData,
-            result: data.prediction.includes("Positive")
-              ? "Positive (Diabetic)"
-              : "Negative (Non-Diabetic)",
-          }),
-        });
+        await fetch(
+          "https://diabetes-prediction-server.onrender.com/api/predictions/save",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({
+              inputs: formData,
+              result: data.prediction.includes("Positive")
+                ? "Positive (Diabetic)"
+                : "Negative (Non-Diabetic)",
+            }),
+          }
+        );
       }
     } catch (error) {
-      alert("⚠️ Error connecting to the ML service. Please ensure Flask is running.");
+      alert("⚠️ Error connecting to server. Try again.");
     }
   };
 
-  //  Generate clean UTF-8-safe PDF
+  // PDF Download
   const downloadPDF = () => {
     if (!report) return;
 
@@ -98,7 +102,7 @@ function Predict() {
 
     autoTable(doc, {
       startY: 60,
-      head: [["Parameter", "Entered Value", "Normal Range", "Status"]],
+      head: [["Parameter", "Value", "Normal Range", "Status"]],
       body: tableData,
       theme: "grid",
       headStyles: {
@@ -107,30 +111,23 @@ function Predict() {
         halign: "center",
         fontStyle: "bold",
       },
-      bodyStyles: { textColor: 30 },
-      alternateRowStyles: { fillColor: [245, 245, 245] },
       styles: { font: "helvetica", fontSize: 11 },
     });
-
-    const finalY = doc.lastAutoTable.finalY + 10;
-    doc.setFontSize(11);
-    doc.setTextColor(100);
-    doc.text("© 2025 Diabetes Predictor | Developed by Sahana Reddy", 14, finalY);
 
     doc.save("Diabetes_Report.pdf");
   };
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gray-900 text-white px-4">
-      {/* --- Header --- */}
       <div className="text-center mb-6">
-        <h1 className="text-4xl font-bold text-blue-400">🩺 Diabetes Prediction App</h1>
+        <h1 className="text-4xl font-bold text-blue-400">
+          🩺 Diabetes Prediction App
+        </h1>
         <p className="text-gray-300 mt-2">
           Predict your health with accuracy using Machine Learning
         </p>
       </div>
 
-      {/* --- Form Section --- */}
       <div className="bg-gray-800 rounded-2xl p-8 w-full max-w-md shadow-lg">
         <h2 className="text-2xl text-teal-400 text-center mb-4 font-semibold">
           Input Health Details
@@ -145,20 +142,19 @@ function Predict() {
               placeholder={key.replace(/([A-Z])/g, " $1")}
               value={formData[key]}
               onChange={handleChange}
-              className="p-3 rounded-lg bg-gray-700 text-white placeholder-gray-400 focus:ring-2 focus:ring-teal-400"
+              className="p-3 rounded-lg bg-gray-700 text-white"
               required
             />
           ))}
 
           <button
             type="submit"
-            className="bg-teal-500 hover:bg-teal-600 text-white font-semibold py-3 rounded-lg transition duration-200 ease-in-out"
+            className="bg-teal-500 hover:bg-teal-600 text-white py-3 rounded-lg"
           >
             Predict
           </button>
         </form>
 
-        {/* --- Prediction Result --- */}
         {report && (
           <div className="text-center mt-6">
             <div
@@ -182,14 +178,13 @@ function Predict() {
                 onClick={downloadPDF}
                 className="bg-yellow-500 hover:bg-yellow-600 px-4 py-2 rounded-lg"
               >
-                 Download Report
+                Download Report
               </button>
             </div>
 
-            {/* --- Overview --- */}
             {showOverview && (
               <div className="mt-6 overflow-x-auto">
-                <table className="w-full text-sm text-left border border-gray-700">
+                <table className="w-full text-sm border border-gray-700">
                   <thead className="bg-gray-700 text-gray-300">
                     <tr>
                       <th className="p-2">Parameter</th>
@@ -203,7 +198,7 @@ function Predict() {
                       <tr key={key} className="border-t border-gray-700">
                         <td className="p-2">{key}</td>
                         <td className="p-2">{val.value}</td>
-                        <td className="p-2">{normalRanges[key] || "-"}</td>
+                        <td className="p-2">{normalRanges[key]}</td>
                         <td className="p-2">{val.status}</td>
                       </tr>
                     ))}
@@ -214,7 +209,6 @@ function Predict() {
           </div>
         )}
       </div>
-
     </div>
   );
 }
