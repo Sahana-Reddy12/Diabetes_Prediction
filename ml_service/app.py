@@ -5,12 +5,12 @@ import numpy as np
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 
-#  Ensure current directory is in sys.path (for logger import)
+# Ensure current directory is in sys.path (for logger import)
 current_dir = os.path.dirname(os.path.abspath(__file__))
 if current_dir not in sys.path:
     sys.path.insert(0, current_dir)
 
-# Import logger (no dot)
+# Import logger
 from logger import get_logger
 
 # Initialize Flask app and logger
@@ -25,9 +25,12 @@ SCALER_PATH = os.path.join("artifacts", "preprocessor.pkl")
 try:
     with open(MODEL_PATH, "rb") as f:
         model = pickle.load(f)
+
     with open(SCALER_PATH, "rb") as f:
         scaler = pickle.load(f)
+
     logger.info("✅ Model and Scaler loaded successfully.")
+
 except Exception as e:
     logger.exception(f"❌ Error loading model or scaler: {e}")
     raise e
@@ -38,25 +41,16 @@ def predict():
     try:
         logger.info("🔹 Received prediction request.")
         features = [float(x) for x in request.form.values()]
-        logger.info(f"Received input features: {features}")
+        logger.info(f"Received inputs: {features}")
 
-        # Extract input values
         (
-            Pregnancies,
-            Glucose,
-            BloodPressure,
-            SkinThickness,
-            Insulin,
-            BMI,
-            DiabetesPedigreeFunction,
-            Age,
+            Pregnancies, Glucose, BloodPressure, SkinThickness,
+            Insulin, BMI, DiabetesPedigreeFunction, Age
         ) = features
 
-        # Scale input
-        scaled_features = scaler.transform(np.array(features).reshape(1, -1))
-        prediction = model.predict(scaled_features)[0]
+        scaled = scaler.transform(np.array(features).reshape(1, -1))
+        prediction = model.predict(scaled)[0]
 
-        #  Normal range definitions
         normal_ranges = {
             "Pregnancies": "0–10",
             "Glucose": "70–140 mg/dL",
@@ -68,86 +62,59 @@ def predict():
             "Age": "20–45 years",
         }
 
-        #  Parameter check function
         def check_param(param, value):
             if param == "Glucose":
-                if value > 140:
-                    return "🔴 High – risk"
-                elif value < 70:
-                    return "🟡 Low"
-                else:
-                    return "🟢 Normal"
+                if value > 140: return "🔴 High – risk"
+                elif value < 70: return "🟡 Low"
+                return "🟢 Normal"
+
             if param == "BMI":
-                if value > 30:
-                    return "🔴 High (Overweight)"
-                elif value < 18.5:
-                    return "🟡 Low (Underweight)"
-                else:
-                    return "🟢 Normal"
+                if value > 30: return "🔴 High (Overweight)"
+                elif value < 18.5: return "🟡 Low"
+                return "🟢 Normal"
+
             if param == "BloodPressure":
-                if value > 130:
-                    return "🔴 High"
-                elif value < 80:
-                    return "🟡 Low"
-                else:
-                    return "🟢 Normal"
+                if value > 130: return "🔴 High"
+                elif value < 80: return "🟡 Low"
+                return "🟢 Normal"
+
             if param == "Age":
-                if value > 45:
-                    return "🟡 Moderate Risk (Older age)"
-                else:
-                    return "🟢 Healthy"
+                return "🟡 Moderate Risk (Older age)" if value > 45 else "🟢 Healthy"
+
             if param == "Insulin":
-                if value > 276:
-                    return "🔴 High"
-                elif value < 15:
-                    return "🟡 Low"
-                else:
-                    return "🟢 Normal"
+                if value > 276: return "🔴 High"
+                elif value < 15: return "🟡 Low"
+                return "🟢 Normal"
+
             if param == "DiabetesPedigreeFunction":
-                if value > 0.6:
-                    return "🔴 High Genetic Risk"
-                else:
-                    return "🟢 Normal"
+                return "🔴 High Genetic Risk" if value > 0.6 else "🟢 Normal"
+
             if param == "SkinThickness":
-                if value > 50:
-                    return "🔴 High"
-                elif value < 10:
-                    return "🟡 Low"
-                else:
-                    return "🟢 Normal"
+                if value > 50: return "🔴 High"
+                elif value < 10: return "🟡 Low"
+                return "🟢 Normal"
+
             if param == "Pregnancies":
-                if value > 10:
-                    return "🟡 High (Pregnancy Risk)"
-                else:
-                    return "🟢 Normal"
+                return "🟡 High (Pregnancy Risk)" if value > 10 else "🟢 Normal"
+
             return "🟢 Normal"
 
-        # Build parameter overview
         overview = {}
-        for i, param in enumerate(
-            [
-                "Pregnancies",
-                "Glucose",
-                "BloodPressure",
-                "SkinThickness",
-                "Insulin",
-                "BMI",
-                "DiabetesPedigreeFunction",
-                "Age",
-            ]
-        ):
+        params = [
+            "Pregnancies", "Glucose", "BloodPressure", "SkinThickness",
+            "Insulin", "BMI", "DiabetesPedigreeFunction", "Age"
+        ]
+
+        for i, param in enumerate(params):
             overview[param] = {
                 "value": features[i],
                 "normal_range": normal_ranges[param],
                 "status": check_param(param, features[i]),
             }
 
-        # Prediction result
         result = {
-            "prediction": "Positive (Diabetic)"
-            if prediction == 1
-            else "Negative (Non-Diabetic)",
-            "emoji": "🩸" if prediction == 1 else "💚",
+            "prediction": "Positive (Diabetic)" if prediction == 1 else "Negative (Non-Diabetic)",
+            "emoji": "🩸" if prediction else "💚",
             "overview": overview,
         }
 
@@ -161,4 +128,6 @@ def predict():
 
 if __name__ == "__main__":
     logger.info("🚀 Starting Flask Diabetes Prediction Service...")
-    app.run(debug=True)
+
+    port = int(os.environ.get("PORT", 5000))  # Render gives dynamic PORT
+    app.run(host="0.0.0.0", port=port)
